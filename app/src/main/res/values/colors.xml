@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="arena_bg">#FF060913</color>
+    <color name="arena_surface">#FF0E1526</color>
+    <color name="neon_cyan">#FF00F0FF</color>
+    <color name="neon_lime">#FF80FF3B</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

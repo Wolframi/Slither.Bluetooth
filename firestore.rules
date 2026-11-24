@@ -1,0 +1,199 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidRoom(data) {
+      return data.hostUid is string && data.hostUid.size() >= 1 && data.hostUid.size() <= 128 &&
+             data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 24 &&
+             data.roomName is string && data.roomName.size() >= 2 && data.roomName.size() <= 36 &&
+             data.status in ['waiting', 'playing', 'closed'] &&
+             data.active is bool &&
+             data.active == (data.status != 'closed') &&
+             data.arenaRadius is int && data.arenaRadius >= 1000 && data.arenaRadius <= 4000 &&
+             data.includeBots is bool &&
+             data.botDifficulty in ['CHILL', 'BALANCED', 'HARDCORE'] &&
+             data.playerCount is int && data.playerCount >= 1 && data.playerCount <= 16 &&
+             data.maxPlayers is int && data.maxPlayers >= 2 && data.maxPlayers <= 16 &&
+             data.tick is int && data.tick >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRoomPlayer(data) {
+      return data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+             data.hostUid is string && data.hostUid.size() >= 1 && data.hostUid.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 24 &&
+             data.skinId is int && data.skinId >= 0 && data.skinId <= 15 &&
+             data.targetAngle is number && data.targetAngle >= -7.0 && data.targetAngle <= 7.0 &&
+             data.boosting is bool &&
+             data.respawnSeq is int && data.respawnSeq >= 0 && data.respawnSeq <= 1000000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRoomLiveState(data) {
+      return data.hostUid is string && data.hostUid.size() >= 1 && data.hostUid.size() <= 128 &&
+             data.tick is int && data.tick >= 0 &&
+             data.arenaRadius is number && data.arenaRadius >= 500 && data.arenaRadius <= 5000 &&
+             data.killFeed is string && data.killFeed.size() <= 80 &&
+             data.worms is list && data.worms.size() <= 24 &&
+             (data.worms.size() == 0 || (data.worms[0] is map && 'id' in data.worms[0])) &&
+             data.orbs is list && data.orbs.size() <= 2600 &&
+             (data.orbs.size() == 0 || data.orbs[0] is int) &&
+             data.deaths is list && data.deaths.size() <= 16 &&
+             (data.deaths.size() == 0 || data.deaths[0] is map) &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /rooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId);
+      allow list: if isSignedIn() && resource.data.active == true;
+
+      allow create: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       incoming().hostUid == request.auth.uid &&
+                       incoming().status != 'closed' &&
+                       incoming().keys().hasAll([
+                         'hostUid', 'hostName', 'roomName', 'status', 'active',
+                         'arenaRadius', 'includeBots', 'botDifficulty',
+                         'playerCount', 'maxPlayers', 'tick', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'hostUid', 'hostName', 'roomName', 'status', 'active',
+                         'arenaRadius', 'includeBots', 'botDifficulty',
+                         'playerCount', 'maxPlayers', 'tick', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidRoom(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       isValidRoom(incoming()) &&
+                       existing().hostUid == request.auth.uid &&
+                       existing().status != 'closed' &&
+                       incoming().hostUid == existing().hostUid &&
+                       incoming().hostName == existing().hostName &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().maxPlayers == existing().maxPlayers &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'roomName', 'status', 'active', 'arenaRadius',
+                         'includeBots', 'botDifficulty', 'playerCount', 'tick', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       existing().hostUid == request.auth.uid;
+
+      match /players/{playerUid} {
+        allow get: if isSignedIn() &&
+                      isValidId(roomId) &&
+                      isValidId(playerUid) &&
+                      (request.auth.uid == playerUid ||
+                       (resource != null && resource.data.hostUid == request.auth.uid));
+
+        allow list: if isSignedIn() &&
+                       resource.data.hostUid == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(playerUid) &&
+                         request.auth.uid == playerUid &&
+                         incoming().uid == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'uid', 'hostUid', 'name', 'skinId',
+                           'targetAngle', 'boosting', 'respawnSeq',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'uid', 'hostUid', 'name', 'skinId',
+                           'targetAngle', 'boosting', 'respawnSeq',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidRoomPlayer(incoming()) &&
+                         exists(/databases/$(database)/documents/rooms/$(roomId)) &&
+                         get(/databases/$(database)/documents/rooms/$(roomId)).data.active == true &&
+                         incoming().hostUid == get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid;
+
+        allow update: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(playerUid) &&
+                         isValidRoomPlayer(incoming()) &&
+                         request.auth.uid == playerUid &&
+                         existing().uid == request.auth.uid &&
+                         incoming().uid == existing().uid &&
+                         incoming().hostUid == existing().hostUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'skinId', 'targetAngle', 'boosting', 'respawnSeq', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(playerUid) &&
+                         (request.auth.uid == playerUid || existing().hostUid == request.auth.uid);
+      }
+
+      match /state/{stateId} {
+        allow get: if isSignedIn() &&
+                      isValidId(roomId) &&
+                      stateId == 'live' &&
+                      exists(/databases/$(database)/documents/rooms/$(roomId)) &&
+                      (get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid == request.auth.uid ||
+                       exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid)));
+
+        allow list: if false;
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         stateId == 'live' &&
+                         incoming().hostUid == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'hostUid', 'tick', 'arenaRadius', 'killFeed',
+                           'worms', 'orbs', 'deaths', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'hostUid', 'tick', 'arenaRadius', 'killFeed',
+                           'worms', 'orbs', 'deaths', 'updatedAt'
+                         ]) &&
+                         isValidRoomLiveState(incoming()) &&
+                         exists(/databases/$(database)/documents/rooms/$(roomId)) &&
+                         get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid == request.auth.uid;
+
+        allow update: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         stateId == 'live' &&
+                         isValidRoomLiveState(incoming()) &&
+                         existing().hostUid == request.auth.uid &&
+                         incoming().hostUid == existing().hostUid &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'tick', 'arenaRadius', 'killFeed', 'worms', 'orbs', 'deaths', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         stateId == 'live' &&
+                         existing().hostUid == request.auth.uid;
+      }
+    }
+  }
+}

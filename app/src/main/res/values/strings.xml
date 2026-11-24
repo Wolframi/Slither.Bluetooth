@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">Slither BT</string>
+    <string name="app_subtitle">Червяки по Bluetooth</string>
+    <string name="nickname_label">Ваш никнейм</string>
+    <string name="nickname_placeholder">Игрок</string>
+    <string name="skin_section_title">Внешний вид червяка</string>
+    <string name="host_bt_title">Создать арену</string>
+    <string name="host_bt_subtitle">Станьте хостом и примите друзей по Bluetooth</string>
+    <string name="join_bt_title">Подключиться по Bluetooth</string>
+    <string name="join_bt_subtitle">Найдите комнату друга поблизости</string>
+    <string name="solo_bots_title">Тренировка с ботами</string>
+    <string name="solo_bots_subtitle">Офлайн-арена для отработки манёвров</string>
+    <string name="bt_permission_title">Нужен доступ к Bluetooth</string>
+    <string name="bt_permission_desc">Разрешите поиск и подключение по Bluetooth, чтобы играть с друзьями рядом без интернета.</string>
+    <string name="grant_permissions">Разрешить Bluetooth</string>
+    <string name="enable_bluetooth">Включить Bluetooth</string>
+    <string name="make_discoverable">Сделать видимым (5 мин)</string>
+    <string name="start_arena">Запустить арену</string>
+    <string name="scan_devices">Искать устройства</string>
+    <string name="scanning">Поиск...</string>
+    <string name="turbo_boost">ТУРБО</string>
+    <string name="play_again">Возродиться</string>
+    <string name="back_to_lobby">В лобби</string>
+    <string name="sign_in_with_google">Войти через Google</string>
+    <string name="online_host_title">Создать онлайн-сервер</string>
+    <string name="online_join_title">Список серверов (Интернет)</string>
+    <string name="offline_continue">Играть офлайн (Соло / Bluetooth)</string>
+</resources>

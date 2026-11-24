@@ -1,0 +1,208 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Online Arena Room",
+      "description": "Metadata for an internet multiplayer worm arena hosted on a player's device.",
+      "type": "object",
+      "properties": {
+        "hostUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the room host."
+        },
+        "hostName": {
+          "type": "string",
+          "description": "Display nickname of the host player."
+        },
+        "roomName": {
+          "type": "string",
+          "description": "Title of the online room shown in the server list."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["waiting", "playing", "closed"],
+          "description": "Current lifecycle state of the hosted arena."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "True while the room is open for players to discover and join."
+        },
+        "arenaRadius": {
+          "type": "integer",
+          "description": "Circular arena radius in world units."
+        },
+        "includeBots": {
+          "type": "boolean",
+          "description": "Whether AI bots populate the arena alongside players."
+        },
+        "botDifficulty": {
+          "type": "string",
+          "enum": ["CHILL", "BALANCED", "HARDCORE"],
+          "description": "AI bot difficulty preset."
+        },
+        "playerCount": {
+          "type": "integer",
+          "description": "Current number of human players in the room."
+        },
+        "maxPlayers": {
+          "type": "integer",
+          "description": "Maximum allowed human players in the room."
+        },
+        "tick": {
+          "type": "integer",
+          "description": "Latest simulation tick published by the host."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) when the room was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) of the latest room update."
+        }
+      },
+      "required": [
+        "hostUid",
+        "hostName",
+        "roomName",
+        "status",
+        "active",
+        "arenaRadius",
+        "includeBots",
+        "botDifficulty",
+        "playerCount",
+        "maxPlayers",
+        "tick",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoomPlayer": {
+      "title": "Online Room Player Input",
+      "description": "Real-time steering, boost, and respawn input document owned by a joined player.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the joined player."
+        },
+        "hostUid": {
+          "type": "string",
+          "description": "Denormalized host UID matching the parent room for local query security."
+        },
+        "name": {
+          "type": "string",
+          "description": "Player's in-game nickname."
+        },
+        "skinId": {
+          "type": "integer",
+          "description": "Selected worm skin index."
+        },
+        "targetAngle": {
+          "type": "number",
+          "description": "Target steering angle in radians."
+        },
+        "boosting": {
+          "type": "boolean",
+          "description": "Whether turbo boost is currently held."
+        },
+        "respawnSeq": {
+          "type": "integer",
+          "description": "Monotonic counter incremented when requesting a respawn."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) when the player joined."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) of the player's latest input."
+        }
+      },
+      "required": [
+        "uid",
+        "hostUid",
+        "name",
+        "skinId",
+        "targetAngle",
+        "boosting",
+        "respawnSeq",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoomLiveState": {
+      "title": "Online Arena Live State",
+      "description": "Host-authoritative live arena state with worms, packed food orbs, and death summaries.",
+      "type": "object",
+      "properties": {
+        "hostUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the room host."
+        },
+        "tick": {
+          "type": "integer",
+          "description": "Simulation tick counter."
+        },
+        "arenaRadius": {
+          "type": "number",
+          "description": "Radius of the circular arena."
+        },
+        "killFeed": {
+          "type": "string",
+          "description": "Latest kill feed banner text or empty string."
+        },
+        "worms": {
+          "type": "array",
+          "description": "List of worm state maps serialized by the host."
+        },
+        "orbs": {
+          "type": "array",
+          "description": "Flat packed integer list encoding active food orbs."
+        },
+        "deaths": {
+          "type": "array",
+          "description": "List of recent death summary maps keyed by player uid."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) of the live state snapshot."
+        }
+      },
+      "required": [
+        "hostUid",
+        "tick",
+        "arenaRadius",
+        "killFeed",
+        "worms",
+        "orbs",
+        "deaths",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomId}": {
+      "schema": {
+        "$ref": "#/entities/Room"
+      },
+      "description": "Publicly discoverable active online rooms hosted by players."
+    },
+    "/rooms/{roomId}/players/{playerUid}": {
+      "schema": {
+        "$ref": "#/entities/RoomPlayer"
+      },
+      "description": "Joined players and their real-time steering inputs inside a room."
+    },
+    "/rooms/{roomId}/state/{stateId}": {
+      "schema": {
+        "$ref": "#/entities/RoomLiveState"
+      },
+      "description": "Host-published live game state (document ID: live)."
+    }
+  }
+}

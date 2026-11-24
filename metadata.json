@@ -1,0 +1,6 @@
+{
+  "name": "Slither BT",
+  "description": "Аркадная арена с червяками в стиле Slither.io с мультиплеером по Bluetooth",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
